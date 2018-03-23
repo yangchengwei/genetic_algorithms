@@ -12,7 +12,7 @@ class Chromosome:
     def __init__(self, gene):
         self.geno = gene
         if gene == 'random':
-            self.get_random_gene()
+            self.random_gene()
         self.pheno_x1 = 0
         self.pheno_x2 = 0
         self.fitness = 0
@@ -46,7 +46,7 @@ class Chromosome:
         self.fitness = fitness_function( x1_pheno, x2_pheno )
         return
         
-    def get_random_gene(self):
+    def random_gene(self):
         gene = ''
         for i in range(22):
             gene = gene + str(randint(0, 1))
@@ -79,8 +79,22 @@ class Population:
 #                    break
 #            else:
 #                print('ERROR~!')
+        ''' Roulette Wheel 2 '''
+        self.population = []
+        self.children = sorted(self.children, key=lambda x: x.fitness)
+        sum_fitness = sum(range(1,len(self.children)+1))
+        for i in range(self.size):
+            pick    = uniform(0, sum_fitness)
+            current = 0
+            for survivor in range(len(self.children),0,-1):
+                current = current + survivor
+                if current >= pick:
+                    self.population.extend([self.children[len(self.children)-survivor]])
+                    break
+            else:
+                print('ERROR~!')
         ''' First (size) children survive '''
-        self.population = sorted(self.children, key=lambda x: x.fitness)[:self.size]
+#        self.population = sorted(self.children, key=lambda x: x.fitness)[:self.size]
         return
         
     def select_parents(self):
@@ -110,8 +124,8 @@ class Population:
         return
 
 if __name__ == "__main__":
-    maxGenerations = 50
-    times = 1
+    maxGenerations = 200
+    times = 50
     every_geno=[]
     every_fitness=[]
     every_x1=[]
