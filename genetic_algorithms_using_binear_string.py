@@ -5,7 +5,7 @@ from random import random, randint, uniform
 def fitness_function(x1, x2):
     out = 1*( x2 - (5.1/(4*(math.pi**2))*(x1**2)) + (5/math.pi*x1) - (6) )**2 + 10*(1-(1/(8*math.pi)))*math.cos(x1) + 10
 #    out = x1+2*x2
-#    out = -(x1+4)**2-(x2-14)**2
+#    out = (x1+4)**2+(x2-14)**2
     return out
 
 class Chromosome:
@@ -104,7 +104,6 @@ class Population:
         return self.population.pop(randint(0,len(self.population)-1)), self.population.pop(randint(0,len(self.population)-1))
         
     def evolve(self):
-#        self.population = self.population[:self.size//2]
         self.children = []
         while (len(self.population)>0):
             p1, p2 = self.select_parents()
@@ -112,37 +111,43 @@ class Population:
             if random() <= self.crossover_rate:
                 c1, c2 = p1.crossover(p2)
                 self.children.extend([c1, c2])
-#        print(len(self.children))
         for idx in range(len(self.children)):
             if random() <= self.mutation_rate:
                 self.children.extend([self.children[idx].mutate()])
-#        print(len(self.children))
         self.survive()
-#        a=self.size//2
-#        self.population[a:self.size] = sorted(self.children, key=lambda x: x.fitness)[:a]
         self.population = sorted(self.population, key=lambda x: x.fitness)
         return
 
 if __name__ == "__main__":
-    maxGenerations = 200
+    maxGenerations = 100
     times = 50
     every_geno=[]
     every_fitness=[]
     every_x1=[]
     every_x2=[]
+    top_time = -1
+    top_fitness = 1000
     for time in range(times):
-        P = Population(size=512, crossover_rate=0.7, mutation_rate=0.05)
+        P = Population(size=2048, crossover_rate=0.7, mutation_rate=0.05)
         for i in range(1, maxGenerations + 1):
-            print("Generation %d: %s %f %f %f"%(i, P.population[0].geno, P.population[0].fitness,
-                                                P.population[0].pheno_x1, P.population[0].pheno_x2))
-            if P.population[0].fitness == -1:
-                break
-            else:
-                P.evolve()
+            print("Generation %d: %s %f %f %f"%(i, P.population[0].geno,
+                                                P.population[0].fitness,
+                                                P.population[0].pheno_x1,
+                                                P.population[0].pheno_x2))
+            P.evolve()
+
         every_geno.extend([P.population[0].geno])
         every_fitness.extend([P.population[0].fitness])
         every_x1.extend([P.population[0].pheno_x1])
         every_x2.extend([P.population[0].pheno_x2])
+        if (P.population[0].fitness < top_fitness):
+            top_fitness = P.population[0].fitness
+            top_time = time
     for time in range(times):
         print('%s %f %f %f'%(every_geno[time],every_fitness[time],every_x1[time],every_x2[time]))
-        
+    print('Final result:')
+    print('Genotype : %s'%(every_geno[top_time]))
+    print('f(x1,x2) : %f'%(every_fitness[top_time]))
+    print('      x1 : %f'%(every_x1[top_time]))
+    print('      x2 : %f'%(every_x2[top_time]))
+    
