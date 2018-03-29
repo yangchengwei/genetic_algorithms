@@ -174,5 +174,5 @@ if __name__ == "__main__":
     print('f(x1,x2) : %f'%(every_value[top_time]))
     print('      x1 : %f'%(every_x1[top_time]))
     print('      x2 : %f'%(every_x2[top_time]))
-    print('Accuracy : %d %%'%(correct/times*100))
+    print('Accuracy : %d %%'%((correct/times)*100))
     
