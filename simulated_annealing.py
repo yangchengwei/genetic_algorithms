@@ -2,7 +2,7 @@
 import math
 from random import random, randint, uniform
 
-def fitness_function(x1, x2):
+def function_f(x1, x2):
     out = 1*( x2 - (5.1/(4*(math.pi**2))*(x1**2)) + (5/math.pi*x1) - (6) )**2 + 10*(1-(1/(8*math.pi)))*math.cos(x1) + 10
 #    out = x1+2*x2
 #    out = (x1+4)**2+(x2-14)**2
@@ -15,8 +15,9 @@ class Chromosome:
             self.random_gene()
         self.pheno_x1 = 0
         self.pheno_x2 = 0
+        self.value = 0
         self.fitness = 0
-        self.update_fitness()
+        self.update_value()
         return
     
     def crossover(self, mate):
@@ -31,19 +32,31 @@ class Chromosome:
         gene = gene[:idx] + str((int(gene[idx])+1)%2) + gene[idx+1:]
         return Chromosome(gene)
 
-    def update_fitness(self):
+    def update_value(self):
         x1_gene = self.geno[::2]
         x2_gene = self.geno[1::2]
         x1_pheno = 0
         x2_pheno = 0
+        ''' Binary code'''
+#        for i in range(11):
+#            x1_pheno = x1_pheno*2 + int(x1_gene[i])
+#            x2_pheno = x2_pheno*2 + int(x2_gene[i])
+        ''' Gray code '''
+        x1_flip = False
+        x2_flip = False
         for i in range(11):
-            x1_pheno = x1_pheno*2 + int(x1_gene[i])
-            x2_pheno = x2_pheno*2 + int(x2_gene[i])
+            x1_read = int(x1_gene[i]) if not x1_flip else (int(x1_gene[i])+1)%2
+            x2_read = int(x2_gene[i]) if not x2_flip else (int(x2_gene[i])+1)%2
+            x1_pheno = x1_pheno*2 + x1_read
+            x2_pheno = x2_pheno*2 + x2_read
+            x1_flip = True if x1_read==1 else False
+            x2_flip = True if x2_read==1 else False
+        
         x1_pheno = round( x1_pheno/2047*15 + (-5) ,2)
         x2_pheno = round( x2_pheno/2047*15 + (0) ,2)
         self.pheno_x1 = x1_pheno
         self.pheno_x2 = x2_pheno
-        self.fitness = fitness_function( x1_pheno, x2_pheno )
+        self.value = function_f( x1_pheno, x2_pheno )
         return
         
     def random_gene(self):
@@ -62,18 +75,18 @@ class Population:
         self.children = []
         for i in range(size):
             self.population.append(Chromosome('random'))
-        self.population = sorted(self.population, key=lambda x: x.fitness)
+        self.population = sorted(self.population, key=lambda x: x.value)
         return
         
     def survive(self):
         ''' Roulette Wheel '''
 #        self.population = []
-#        sum_fitness = sum([(400-c.fitness) for c in self.children])
+#        sum_fitness = sum([(400-c.value) for c in self.children])
 #        for i in range(self.size):
 #            pick    = uniform(0, sum_fitness)
 #            current = 0
 #            for survivor in self.children:
-#                current = current+(400-survivor.fitness)
+#                current = current+(400-survivor.value)
 #                if current >= pick:
 #                    self.population.extend([survivor])
 #                    break
@@ -81,25 +94,33 @@ class Population:
 #                print('ERROR~!')
         ''' Roulette Wheel 2 '''
         self.population = []
-        self.children = sorted(self.children, key=lambda x: x.fitness)
-        sum_fitness = sum(range(1,len(self.children)+1))
-        for i in range(self.size):
+        self.children = sorted(self.children, key=lambda x: x.value)
+        self.population.extend([self.children[0]])
+        self.children.remove(self.children[0])
+        L = len(self.children)
+        for i in range(L):
+            self.children[i].fitness = L - i
+        sum_fitness = sum(range(1,L+1))
+        for i in range(self.size-1):
             pick    = uniform(0, sum_fitness)
             current = 0
-            for survivor in range(len(self.children),0,-1):
-                current = current + survivor
+            for survivor in self.children:
+                current = current + survivor.fitness
                 if current >= pick:
-                    self.population.extend([self.children[len(self.children)-survivor]])
+                    self.population.extend([survivor])
+                    self.children.remove(survivor)
+                    sum_fitness = sum_fitness - survivor.fitness
                     break
             else:
-                print('ERROR~!')
+                print('survive error !')
+                print('i= %d pick= %f current= %f'%(i, pick, current))
         ''' First (size) children survive '''
-#        self.population = sorted(self.children, key=lambda x: x.fitness)[:self.size]
+#        self.population = sorted(self.children, key=lambda x: x.value)[:self.size]
         return
         
     def select_parents(self):
         if len(self.population)<2: 
-            print('error')
+            print('select_parents error !')
             return None
         return self.population.pop(randint(0,len(self.population)-1)), self.population.pop(randint(0,len(self.population)-1))
         
@@ -115,56 +136,55 @@ class Population:
             if random() <= self.mutation_rate:
                 self.children.extend([self.children[idx].mutate()])
         self.survive()
-        self.population = sorted(self.population, key=lambda x: x.fitness)
+        self.population = sorted(self.population, key=lambda x: x.value)
         return
         
     def hill_climbing(self, nbd_size=30):
         self.children = []
-        self.children.extend([self.population[0]])
         for i in range(nbd_size):
             self.children.extend([self.population[0].mutate()])
-        self.population = [sorted(self.children, key=lambda x: x.fitness)[0]]
+        self.population = sorted(self.children, key=lambda x: x.value)
         return
         
-    def simulated_annealing(self, time, nbd_size=30):
-        
-        return
-
 if __name__ == "__main__":
     maxGenerations = 100
-    times = 512
-    nbd_size = 50
-    
+    times = 10000
+    nbd_size = 100
     every_geno=[]
-    every_fitness=[]
+    every_value=[]
     every_x1=[]
     every_x2=[]
     top_time = -1
-    top_fitness = 1000
+    top_value = 1000
+    correct = 0
     for time in range(times):
         P = Population(size=1)
-        for i in range(1, maxGenerations + 1):
-            print("Generation %d: %s %f %f %f"%(i, P.population[0].geno,
-                                                P.population[0].fitness,
+        for generation in range(1, maxGenerations + 1):
+            print("Generation %d: %s %f %f %f"%(generation, P.population[0].geno,
+                                                P.population[0].value,
                                                 P.population[0].pheno_x1,
                                                 P.population[0].pheno_x2))
-            local = P.population[0].fitness
+            local = P.population[0].value
             P.hill_climbing(nbd_size)
-            if (P.population[0].fitness == local):
+            if (P.population[0].value >= local and
+                random()>=math.exp(local-P.population[0].value)/(generation)):
                 break
 
         every_geno.extend([P.population[0].geno])
-        every_fitness.extend([P.population[0].fitness])
+        every_value.extend([P.population[0].value])
         every_x1.extend([P.population[0].pheno_x1])
         every_x2.extend([P.population[0].pheno_x2])
-        if (P.population[0].fitness < top_fitness):
-            top_fitness = P.population[0].fitness
+        if (P.population[0].value < top_value):
+            top_value = P.population[0].value
             top_time = time
     for time in range(times):
-        print('%s %f %f %f'%(every_geno[time],every_fitness[time],every_x1[time],every_x2[time]))
+        print('%s %f %f %f'%(every_geno[time],every_value[time],every_x1[time],every_x2[time]))
+        if (every_value[time] == top_value):
+            correct = correct + 1
     print('Final result:')
     print('Genotype : %s'%(every_geno[top_time]))
-    print('f(x1,x2) : %f'%(every_fitness[top_time]))
+    print('f(x1,x2) : %f'%(every_value[top_time]))
     print('      x1 : %f'%(every_x1[top_time]))
     print('      x2 : %f'%(every_x2[top_time]))
+    print('Accuracy : %f %%'%((correct/times)*100))
     
