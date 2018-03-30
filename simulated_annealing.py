@@ -33,8 +33,13 @@ class Chromosome:
         return Chromosome(gene)
 
     def update_value(self):
+        '''x1x1x2x2'''
+#        x1_gene = self.geno[:11]
+#        x2_gene = self.geno[11:22]
+        '''x1x2x1x2'''
         x1_gene = self.geno[::2]
         x2_gene = self.geno[1::2]
+
         x1_pheno = 0
         x2_pheno = 0
         ''' Binary code'''
@@ -166,8 +171,9 @@ if __name__ == "__main__":
                                                 P.population[0].pheno_x2))
             local = P.population[0].value
             P.hill_climbing(nbd_size)
+            temperature = 10**(1-generation)
             if (P.population[0].value >= local and
-                random()>=math.exp(local-P.population[0].value)/(generation)):
+                random()>=math.exp((local-P.population[0].value-0.000001)/temperature)):
                 break
 
         every_geno.extend([P.population[0].geno])
