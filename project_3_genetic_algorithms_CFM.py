@@ -157,7 +157,7 @@ class Population:
         return self.population.pop(randint(0,len(self.population)-1)), self.population.pop(randint(0,len(self.population)-1))
     
     def children_replace(self, child):
-        ''' Crowding factor model '''
+        ''' Crowding '''
         min_distance = 6
         min_idx = -1
         L = len(self.children)
